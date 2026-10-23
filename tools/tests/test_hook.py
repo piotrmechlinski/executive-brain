@@ -109,6 +109,27 @@ class Hook(unittest.TestCase):
         self.assertNotIn("permissionDecision", note)  # a warning, not an approval
         self.assertIn("D5 has no source", note["additionalContext"])
 
+    def stale_home(self):
+        """Home.md's generated part out of date, as after a change to a register: refresh rewrites it."""
+        home = self.root / "Home.md"
+        home.write_text(home.read_text(encoding="utf-8").replace("<!-- /generated -->", "Stale.\n<!-- /generated -->"),
+                        encoding="utf-8")
+
+    def test_a_refresh_in_the_same_command_clears_the_generated_parts(self):
+        self.stale_home()
+        for cmd in ("python3 tools/vault.py refresh && python3 tools/vault.py check && git commit -qam 'Test: a row'",
+                    "python3 tools/vault.py refresh && git add -A && git commit -qm x && git push origin main"):
+            self.assertEqual(self.bash(cmd), (0, "", ""), cmd)
+        code, out, _ = self.bash("git commit -qam x && python3 tools/vault.py refresh")  # refreshed after the commit
+        self.assertIn("generated part is out of date", json.loads(out)["hookSpecificOutput"]["additionalContext"])
+        self.assertBlocked(self.bash("python3 tools/vault.py refresh && git push"), "generated part is out of date")
+
+    def test_a_refresh_does_not_clear_other_errors(self):
+        self.stale_home()
+        self.break_vault()
+        self.assertBlocked(self.bash("python3 tools/vault.py refresh && git commit -qam x && git push"),
+                           "D5 has no source")
+
     def test_a_commit_message_with_a_code_name_is_refused(self):
         self.assertBlocked(self.bash("git commit -am 'Meeting: Project kestrel and the depots'"),
                            "names a confidential term")

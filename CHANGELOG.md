@@ -91,6 +91,7 @@ What changed while it was made ready:
 - **A hook holds Claude to the check** (`.claude/check_hook.py`): a push waits while the check fails; a commit goes
   ahead with a warning, unless it would put a code name or a `Private/` note into the history; a check that is slow or
   cannot run holds nothing back; at the end of a turn with unpushed work and a failing check, Claude is sent back once.
+  A command that runs `vault.py refresh` before it commits is not held for the generated parts that refresh updates.
 - **Every session lands on `main`:**
   - in a cloud session, the session start fetches `main`, completes a shallow clone and switches to `main`, unless the
     session's branch holds work of its own, which it names;

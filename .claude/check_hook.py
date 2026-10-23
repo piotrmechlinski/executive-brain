@@ -7,7 +7,9 @@ PreToolUse on Bash, for a command that runs `git push` or `git commit` anywhere 
 - a commit goes ahead with the check's report as a warning for Claude, unless it would put something confidential into
   the history, which stays there: a code name in the command or its message, a line of a Private/ note outside it, or
   a note moved out of Private/ without the words "out of Private/" in the message;
-- a check that does not finish in time, or cannot run, blocks nothing: Claude is told to run it and say so.
+- a check that does not finish in time, or cannot run, blocks nothing: Claude is told to run it and say so;
+- a command that runs `vault.py refresh` before it commits, such as `vault.py refresh && git commit -am x && git push`,
+  is not held for generated parts that are out of date: the refresh brings them up to date before the commit.
 Any other command passes untouched.
 
 Stop: when Claude is about to end its turn with work not yet pushed and the check fails, Claude is sent back once to
@@ -29,31 +31,47 @@ from pathlib import Path
 PROJECT = Path(os.environ.get("CLAUDE_PROJECT_DIR") or Path(__file__).resolve().parent.parent)
 TIMEOUT = float(os.environ.get("VAULT_HOOK_TIMEOUT", "20"))  # seconds; the hook's own limit in settings.json is 30
 GIT_OPTS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--super-prefix", "--config-env"}
-FALLBACK = re.compile(r"\bgit\b[^;&|\n]*?\s(commit|push)\b")
+FALLBACK = re.compile(r"\bgit\b[^;&|\n]*?\s(commit|push)\b|\bvault\.py\s+(refresh)\b")
 LEAK = re.compile(r": a confidential term outside Private/$|: holds a line of Private/")
+REFRESHED = re.compile(r": the generated part is out of date;|: an unresolved git conflict in the generated part;")
 FIX = ("Run python3 tools/vault.py refresh if it says a generated part is out of date, fix the rest in the notes and "
        "registers, and run python3 tools/vault.py check until it passes. Never invent a source, an owner or a date: "
        "if a fact is missing, ask the executive. Do not work around this hook.")
 
 
-def git_actions(command):
-    """The set of 'commit' and 'push' that the Bash command runs anywhere in it."""
+def steps(command):
+    """In order, the 'refresh' of vault.py and the git 'commit' and 'push' that the Bash command runs."""
     try:
         lex = shlex.shlex(command, posix=True, punctuation_chars=True)
         lex.whitespace_split = True
         tokens = [t.strip("`") for t in lex]
     except ValueError:  # unbalanced quotes: fall back to a plain search
-        return set(FALLBACK.findall(command))
-    found = set()
+        return [git or refresh for git, refresh in FALLBACK.findall(command)]
+    found = []
     for i, tok in enumerate(tokens):
+        if tok.endswith("vault.py") and tokens[i + 1:i + 2] == ["refresh"]:
+            found.append("refresh")
         if tok != "git" and not tok.endswith("/git"):
             continue
         j = i + 1
         while j < len(tokens) and tokens[j].startswith("-"):
             j += 2 if tokens[j] in GIT_OPTS_WITH_VALUE else 1
         if j < len(tokens) and tokens[j] in ("commit", "push"):
-            found.add(tokens[j])
+            found.append(tokens[j])
     return found
+
+
+def git_actions(command):
+    """The set of 'commit' and 'push' that the Bash command runs anywhere in it."""
+    return set(steps(command)) - {"refresh"}
+
+
+def refreshes_first(command):
+    """True when the command runs vault.py refresh before its first commit, and pushes, if it does, after it."""
+    order = steps(command)
+    if "refresh" not in order or "commit" not in order or order.index("refresh") > order.index("commit"):
+        return False
+    return "push" not in order or order.index("push") > order.index("commit")
 
 
 def vault_root(cwd):
@@ -174,6 +192,9 @@ def pre_tool_use(data, root):
     if "commit" in actions and leaks:
         return block("Blocked: the vault check finds something confidential outside Private/, and a commit would keep "
                      "it in the history:\n\n%s\n\nTake it out, or move it to Private/, then commit." % "\n".join(leaks))
+    errors = [line for line in report.partition("To fix before the push:")[2].splitlines() if line.startswith("  ")]
+    if errors and all(REFRESHED.search(line) for line in errors) and refreshes_first(command):
+        return 0  # the command's own refresh brings the generated parts up to date before it commits
     if action == "commit":
         return context("The vault check fails. The commit goes ahead, but the push will wait until the check "
                        "passes.\n\n%s\n\n%s" % (report, FIX))
