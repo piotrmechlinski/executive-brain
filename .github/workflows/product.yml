@@ -1,0 +1,80 @@
+# The product's own tests. They run only in the Executive Brain repository: in a vault made with "Use this template"
+# both jobs are skipped (a skipped job shows as passed), so a vault spends no Actions minutes on them. The guard names
+# the repository's ID, which survives a rename, and its name, which survives the repository being made again.
+#
+# No third-party actions: the jobs check out the commit with git and use the runner's own Python and Node, so nothing
+# here needs pinning or ages as actions do.
+name: Product tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  tools:
+    if: github.repository_id == 1429928842 || github.repository == 'piotrmechlinski/executive-brain'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the commit
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q .
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)" \
+            fetch -q --depth 1 "https://github.com/${{ github.repository }}" "${{ github.sha }}"
+          git checkout -q FETCH_HEAD
+      - name: The check on the empty vault and on the example, with no packages
+        run: |
+          python3 -I -S tools/vault.py check
+          VAULT_TODAY=2026-10-22 python3 -I -S tools/vault.py check --vault examples/Brightwater
+      - name: Python packages, for the runner's own Python (a test runs it from a bare PATH)
+        run: sudo python3 -m pip install -q --break-system-packages -r requirements.txt
+      - name: Unit tests
+        run: python3 -m unittest discover -s tools/tests -v
+      - name: The project map
+        run: |
+          python3 tools/build_map.py --vault examples/Brightwater --all
+          grep -q "P1 Warehouse automation" "examples/Brightwater/build/Project map.html"
+          grep -q "Route planning pilot" "examples/Brightwater/build/Project map.html"
+      - name: Reading a document
+        run: |
+          python3 tools/read_document.py "examples/Brightwater/Sources/2026-10-01 Operations strategy memo.docx" \
+            | grep -q "Operations strategy memo"
+
+  documents:
+    if: github.repository_id == 1429928842 || github.repository == 'piotrmechlinski/executive-brain'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the commit
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git init -q .
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)" \
+            fetch -q --depth 1 "https://github.com/${{ github.repository }}" "${{ github.sha }}"
+          git checkout -q FETCH_HEAD
+      - name: Python packages, Playwright and its Chromium
+        run: |
+          sudo python3 -m pip install -q --break-system-packages -r requirements.txt
+          npm install --no-save --no-package-lock --no-audit --no-fund playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: The map's PDF, a Word file and a PDF with diagrams
+        run: |
+          python3 -m unittest tools/tests/test_build_doc.py -v
+          python3 tools/build_doc.py --vault examples/Brightwater "examples/Brightwater/Projects/P1 Warehouse automation.md"
+          out="examples/Brightwater/build"
+          test -s "$out/P1 Warehouse automation.docx"
+          test -s "$out/P1 Warehouse automation.pdf"
+          test -s "$out/P1 Warehouse automation figures/fig1.png"
+          python3 tools/read_document.py "$out/P1 Warehouse automation.pdf" | grep -q "Warehouse automation"

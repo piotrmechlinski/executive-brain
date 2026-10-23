@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "deny": [
+      "WebFetch",
+      "Bash(curl *)",
+      "Bash(wget *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/start.sh\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -f \"$CLAUDE_PROJECT_DIR/.claude/check_hook.py\" ] || python3 \"$CLAUDE_PROJECT_DIR/.claude/check_hook.py\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -f \"$CLAUDE_PROJECT_DIR/.claude/check_hook.py\" ] || python3 \"$CLAUDE_PROJECT_DIR/.claude/check_hook.py\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

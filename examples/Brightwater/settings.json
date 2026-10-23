@@ -1,0 +1,19 @@
+{
+ "title": "Alex Morgan · COO · Brightwater Logistics",
+ "footer": "Brightwater Logistics · internal",
+ "stale_days": 30,
+ "theme": {
+  "paper": "#FFFFFF",
+  "ink": "#1F2328",
+  "muted": "#59636E",
+  "rule": "#D0D7DE",
+  "soft": "#F6F8FA",
+  "accent": "#0B5FAD"
+ },
+ "private_terms": [
+  {
+   "n": 2,
+   "h": "7327add876a3765d"
+  }
+ ]
+}

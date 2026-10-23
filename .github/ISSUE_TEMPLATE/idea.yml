@@ -1,0 +1,33 @@
+name: An idea
+description: Something the product should do, or do better.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the public repository of the product, not your vault. Anyone can read what you write here.
+        Say what you need, not only the solution. Use invented examples, never your own vault.
+        Read ROADMAP.md first: the idea may be planned, or ruled out.
+  - type: checkboxes
+    id: clean
+    attributes:
+      label: Nothing private
+      options:
+        - label: This issue holds nothing from my own vault or my organisation.
+          required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: What you need
+      description: The situation and what is hard today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+  - type: textarea
+    id: example
+    attributes:
+      label: An example
+      description: Invented names and facts only.
