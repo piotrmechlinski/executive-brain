@@ -4,6 +4,14 @@ The version follows the vault: a major version when a vault that passed the chec
 over; a minor one for a new command, skill or register template; a patch for fixes and documents. `vault.py status`
 shows the version a vault runs.
 
+## 1.0.1 (2026-10-27)
+
+- **macOS:** the tests pass on a Mac.
+  - The session start runs git without timeout(1) where the system has none, as on macOS. A test runs it on a PATH
+    without timeout.
+  - The project map's test compares paths the way the vault resolves its root: on macOS, `/var` is `/private/var`.
+- **README:** a new section, Updating: how a copy gets a new release.
+
 ## 1.0.0 (2026-10-23)
 
 The first public release. What it is:
