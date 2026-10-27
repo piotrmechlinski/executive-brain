@@ -135,6 +135,17 @@ works too.
 You never need to run them yourself: Claude does, as `CLAUDE.md` tells it to. `AGENTS.md` gives the same rules to
 other coding agents, but the vault has been tried only with Claude Code.
 
+## Updating
+
+A copy made with **Use this template** has no git link to this repository, so it gets no change from here by itself.
+A new release is listed on this page, with what changed in [CHANGELOG.md](CHANGELOG.md); `vault.py status` shows the
+version your vault runs. To bring one in, ask Claude for the update in a session that can reach GitHub. It takes the
+product's files from the release: the tools, the templates, the commands and hooks in `.claude/`, and `CLAUDE.md` but
+for its "About me". Your notes, registers, cards, outputs, `settings.json` and your vault's own `README.md` stay as
+they are. Then it runs the refresh and the check, and commits. The commands, and the full list of what a release
+replaces, are under [Updating](SETUP.md#updating) in `SETUP.md`. An `/update` command that does this in one step is
+on the [roadmap](.github/ROADMAP.md).
+
 ## Privacy and trust
 
 Your vault is plain files in your own private GitHub repository. Three services see it:
