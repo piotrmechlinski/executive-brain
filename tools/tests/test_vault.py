@@ -284,7 +284,7 @@ class ExampleVault(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(build_map, "pdf", return_value=False):
             out = build_map.build(vault.Vault(self.root), [], False)
         page = out.read_text(encoding="utf-8")
-        self.assertEqual(out, self.root / "build" / "Project map.html")
+        self.assertEqual(out, self.root.resolve() / "build" / "Project map.html")  # /var is /private/var on macOS
         self.assertIn("P1 Warehouse automation", page)
         self.assertIn("P2 Customer service reset", page)
         self.assertNotIn("Route planning pilot", page)  # archived, so only with --all
