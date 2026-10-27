@@ -106,6 +106,27 @@ class Sessions(unittest.TestCase):
         self.assertIn("Vault status, 2026-10-22", out)
         self.assertIn("| D5 |", (work / "Knowledge" / "Decisions.md").read_text(encoding="utf-8"))
 
+    def test_a_cloud_session_starts_without_timeout(self):
+        # macOS has no timeout(1): the start fetches main all the same, here on a PATH that lacks it
+        bin_dir = self.tmp / "bin"
+        bin_dir.mkdir()
+        for name in ("bash", "sh", "git", "dirname", "tail"):
+            os.symlink(shutil.which(name), bin_dir / name)
+        os.symlink(sys.executable, bin_dir / "python3")
+        work = self.clone("work", "--depth", "1")
+        self.git(work, "checkout", "-q", "-b", "claude/session-1")
+        other = self.clone("other")
+        self.file_meeting(other, "D5")
+        self.git(other, "push", "-q", "origin", "main")
+        self.env["PATH"] = str(bin_dir)
+        self.assertIsNone(shutil.which("timeout", path=self.env["PATH"]))
+
+        out = self.start(work)
+        self.assertEqual(self.git(work, "rev-parse", "--abbrev-ref", "HEAD"), "main")
+        self.assertEqual(self.git(work, "rev-parse", "HEAD"), self.git(self.origin, "rev-parse", "main"))
+        self.assertEqual(self.git(work, "rev-parse", "--is-shallow-repository"), "false")
+        self.assertIn("Vault status, 2026-10-22", out)
+
     def test_a_session_branch_with_work_of_its_own_stays(self):
         work = self.clone("work")
         self.git(work, "checkout", "-q", "-b", "claude/session-2")

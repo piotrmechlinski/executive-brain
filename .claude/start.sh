@@ -5,13 +5,16 @@
 # status, which Claude reads first.
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/..}" || exit 0
 
+# timeout(1) is not on macOS: there git runs without a time limit.
+limit() { if command -v timeout >/dev/null 2>&1; then timeout "$@"; else shift; "$@"; fi; }
+
 on_main() {
   git rev-parse --git-dir >/dev/null 2>&1 || return 0
   export GIT_TERMINAL_PROMPT=0
   if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "true" ]; then
-    timeout 120 git fetch -q --unshallow origin >/dev/null 2>&1  # the review dates projects by their last commit
+    limit 120 git fetch -q --unshallow origin >/dev/null 2>&1  # the review dates projects by their last commit
   fi
-  if ! timeout 60 git fetch -q origin main >/dev/null 2>&1; then
+  if ! limit 60 git fetch -q origin main >/dev/null 2>&1; then
     echo "Git: main could not be fetched from GitHub, so this session may not see the latest vault."
     return 0
   fi
