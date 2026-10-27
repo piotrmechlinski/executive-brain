@@ -31,7 +31,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote, unquote
 
-VERSION = "1.0.0"  # the product's version: the first numbered heading of CHANGELOG.md names the same
+VERSION = "1.0.1"  # the product's version: the first numbered heading of CHANGELOG.md names the same
 TOOLS = Path(__file__).resolve().parent
 SKIP = {"tools", "build", "examples"}  # at the top: the product's tools, what they build, the fictional example
 NEVER = {".git", ".venv", "node_modules", "__pycache__"}  # anywhere: git's own folder, packages and caches
