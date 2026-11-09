@@ -6,7 +6,7 @@ This file is about the product, Executive Brain. If you are an executive using y
 
 This repository is public. Never put anything from a real vault in an issue, a pull request or a commit: no names,
 no notes, no register rows, no file names. Show a problem with [the example](../examples/Brightwater) or with
-invented data. Examples stay fictional.
+invented data. An example uses the example company or invented names.
 
 ## Report a problem
 

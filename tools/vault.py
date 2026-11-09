@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The vault's housekeeping. Standard library only.
 
-    python3 tools/vault.py status            what a session starts with: the Inbox, what is overdue, the check
+    python3 tools/vault.py status            what a session starts with: the Inbox, what is overdue or due soon, the
+                                             open decisions that have waited, the check
     python3 tools/vault.py check             before every push: exits 1 if anything breaks the vault's rules
     python3 tools/vault.py refresh           rewrites the generated parts of Home.md and the project cards
     python3 tools/vault.py review            the weekly review: what changed, overdue, due soon, actions, stale
@@ -31,9 +32,9 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote, unquote
 
-VERSION = "1.0.1"  # the product's version: the first numbered heading of CHANGELOG.md names the same
+VERSION = "1.1.0"  # the product's version: the first numbered heading of CHANGELOG.md names the same
 TOOLS = Path(__file__).resolve().parent
-SKIP = {"tools", "build", "examples"}  # at the top: the product's tools, what they build, the fictional example
+SKIP = {"tools", "build", "examples"}  # at the top: the product's tools, what they build, the example company
 NEVER = {".git", ".venv", "node_modules", "__pycache__"}  # anywhere: git's own folder, packages and caches
 TOP_FILES = {"README.md", "SETUP.md", "CLAUDE.md", "AGENTS.md", "Home.md", "LICENSE", "CHANGELOG.md", "settings.json",
              "requirements.txt"}
@@ -54,6 +55,10 @@ MDLINK = re.compile(r"\]\((<[^>]+>|[^)\s]+)\)")
 GENERATED = re.compile(r"(<!-- generated -->\n)(.*?)(<!-- /generated -->)", re.S)
 CONFLICT = re.compile(r"^<{7}(?: |$)", re.M)  # the first line of an unresolved git conflict
 PRIVATE_LINE = 40  # a line or sentence of Private/ this long or longer must appear nowhere else
+SOON = 14  # days ahead: what falls due within them is named at the session start and in the review
+WAITING = 14  # days: an open decision with no date, unchanged this long, is named at the session start
+SHOWN = 5  # rows the session start names under each heading; the review lists them all
+CORRECTIONS = 20  # lines under "Corrections" in "About me"; above this, the check suggests merging some
 CACHE = "check-cache.json"  # in build/: what the confidential check found in each file, by its hash
 CACHE_FORM = 2  # in the cache's key: when the check reads files another way, it reads them all again
 INLINE = re.compile(r"</?(?:a|abbr|b|bdi|bdo|cite|code|data|del|dfn|em|font|i|ins|kbd|mark|q|s|samp|small|span|"
@@ -796,12 +801,32 @@ def check(v):
     # the generated parts
     for path in refreshed(v):
         errors.append("%s: the generated part is out of date; run python3 tools/vault.py refresh" % v.rel(path))
+    # the executive's corrections, kept in "About me"
+    claude = v.root / "CLAUDE.md"
+    kept = corrections(v.text(claude)) if claude.exists() else []
+    if len(kept) > CORRECTIONS:
+        warnings.append("CLAUDE.md: %d corrections under \"About me\"; above %d, ask the executive which to merge"
+                        % (len(kept), CORRECTIONS))
     return errors, warnings
+
+
+def corrections(text):
+    """The lines kept under "Corrections" in the "About me" part of CLAUDE.md, one per correction."""
+    about = re.search(r"^## About me[ \t]*\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+    found, inside = [], False
+    for line in (about.group(1) if about else "").splitlines():
+        if line.startswith("- **Corrections:**"):
+            inside = True
+        elif inside and not line.startswith("  "):
+            break
+        elif inside and line.lstrip().startswith("- "):
+            found.append(line.strip()[2:].strip())
+    return found
 
 
 # ---------------- the commands ----------------
 
-def overdue_and_soon(v, days=14):
+def overdue_and_soon(v, days=SOON):
     late, soon = [], []
     for r in v.rows:
         d = due_of(r)
@@ -849,6 +874,27 @@ def unverified(r):
     return any("unverified" in value.lower() for key, value in r["row"].items() if key != "Source")
 
 
+def waiting_decisions(v):
+    """(last change, row) for each open decision with no due date that has not changed in WAITING days, oldest
+    first: nothing else brings it up before the weekly review."""
+    found = []
+    for r in v.rows:
+        if r["register"] != "Decisions" or r["kind"] != "ID" or closed(r["row"]) or r["row"].get("Due", "").strip():
+            continue
+        last = updated_of(r)
+        if last and today() - last >= timedelta(days=WAITING):
+            found.append((last, r))
+    return sorted(found, key=lambda x: (x[0], row_key(x[1])))
+
+
+def listed(found, since=False):
+    """The first rows of (date, row) pairs, one per line under a status heading, and how many more the review lists."""
+    lines = ["\n    " + describe(r) + (" · unchanged since %s" % d if since else "") for d, r in found[:SHOWN]]
+    if len(found) > SHOWN:
+        lines.append("\n    and %d more (/review)" % (len(found) - SHOWN))
+    return "".join(lines)
+
+
 def cmd_status(v):
     print("Vault status, %s (Executive Brain %s)" % (today().isoformat(), VERSION))
     claude = v.root / "CLAUDE.md"
@@ -860,8 +906,11 @@ def cmd_status(v):
     else:
         print("- Inbox: empty.")
     late, soon = overdue_and_soon(v)
-    print("- Overdue: %d%s" % (len(late), "".join("\n    " + describe(r) for _, r in late[:5])))
-    print("- Due within 14 days: %d" % len(soon))
+    print("- Overdue: %d%s" % (len(late), listed(late)))
+    print("- Due within %d days: %d%s" % (SOON, len(soon), listed(soon)))
+    waiting = waiting_decisions(v)
+    print("- Open decisions with no date, unchanged for %d days or more: %d%s" % (WAITING, len(waiting),
+                                                                                 listed(waiting, since=True)))
     last = last_review(v)
     if last:
         print("- Weekly review: last on %s%s" % (last, ", due now (/review)" if today() - last >= timedelta(days=7) else ""))
@@ -949,7 +998,7 @@ def cmd_review(v):
                          ("New or changed", [describe(r) for r in opened])):
         print("- %s (%d)%s" % (title, len(items), "".join("\n  - " + i for i in items)))
     block("Overdue", [describe(r) for _, r in late])
-    block("Due within 14 days", [describe(r) for _, r in soon])
+    block("Due within %d days" % SOON, [describe(r) for _, r in soon])
     block("Open actions, by owner",
           ["%s: %s" % (r["row"].get("Owner", "").strip() or "no owner", describe(r, owner=False)) for r in actions])
     block("Projects with no change in %d days" % stale_days,

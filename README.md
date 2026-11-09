@@ -10,7 +10,7 @@ runs, work on it.
 
 ![The project map of the example vault: owners, next steps, an overdue item, a timeline](.github/images/project-map.png)
 
-*The map of [Brightwater](examples/Brightwater), a fictional COO's vault, also
+*The map of [Brightwater](examples/Brightwater), the vault of an example company's COO, also
 [as a PDF](.github/images/project-map.pdf).* [A 49-second demo](.github/images/demo.gif): the check, the weekly
 review and the map, run on that vault.
 
@@ -97,7 +97,12 @@ own rows, kept current by the tools, and its map. A closed project moves to `Arc
 
 ## Keeping it in order
 
-- **Every session starts with the Inbox.** Claude files what is waiting before anything else.
+- **Every session starts with the Inbox and a reminder.** Claude files what is waiting before anything else, and
+  opens its first answer with what is overdue, what falls due within 14 days, and the open decisions with no date
+  that have not moved in 14 days.
+- **Corrections are kept.** When you correct how Claude works, a format, a word or a step, it writes one line under
+  "Corrections" in the "About me" part of `CLAUDE.md` and follows it from then on; a new release keeps it. Only what
+  you say in a session adds a line, never a filed document.
 - **Fixed names and IDs.** Files start with their date. Rows carry IDs that never change: `P1` projects, `D1`
   decisions, `T1` actions, `R1` risks, `M1` milestones, `A1` assumptions, `I1` issues.
 - **A check before every push.** It stops on a broken link, a fact without a source, a row without an owner, an

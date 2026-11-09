@@ -15,9 +15,9 @@ Two rounds. The first ends with something to look at: Home and the project map. 
    - each project they run or own, in one line: a name, who owns it, the next step. Three to seven is usual;
    - one line on their company's rules for AI tools, recordings or what may be written down, or "none I know of".
 3. Write round one at once:
-   - "About me" in `CLAUDE.md`, the company's rules included; in `settings.json`, `title` and `footer` (for example
-     `"Alex Morgan · COO · Brightwater"` and `"Brightwater · internal"`) and `timezone`, an IANA name such as
-     `"Europe/Warsaw"`;
+   - "About me" in `CLAUDE.md`, the company's rules included, and its "Corrections" line kept as it is; in
+     `settings.json`, `title` and `footer` (for example `"Alex Morgan · COO · Brightwater"` and
+     `"Brightwater · internal"`) and `timezone`, an IANA name such as `"Europe/Warsaw"`;
    - `Meetings/YYYY-MM-DD Setup.md` from `Templates/Meeting.md`, with `source: debrief`: what they said;
    - one card per project in `Projects/` from `Templates/Project.md`, each with the next ID from
      `python3 tools/vault.py next P`, its owner and next step, its goal if they gave one ("not set yet" if not), and
@@ -34,8 +34,8 @@ Two rounds. The first ends with something to look at: Home and the project map. 
      The rules Claude follows are in [CLAUDE.md](CLAUDE.md), the setup in [SETUP.md](SETUP.md). Made with
      [Executive Brain](https://github.com/piotrmechlinski/executive-brain).
      ```
-   - `examples/` removed with `git rm -r -q examples`, if it is there: it is a fictional vault, and its facts must
-     never be taken for theirs.
+   - `examples/` removed with `git rm -r -q examples`, if it is there: it is the vault of an example company, and its
+     facts must never be taken for theirs.
 4. `python3 tools/vault.py refresh`, `python3 tools/vault.py check`, then `python3 tools/build_map.py` and copy
    `build/Project map.pdf` to `Outputs/YYYY-MM-DD Project map.pdf`. Commit as `Setup`, then pull and push `main` as
    `CLAUDE.md` says under "Git".

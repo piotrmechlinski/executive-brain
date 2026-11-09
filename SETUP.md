@@ -36,7 +36,7 @@ Keep it private. It will hold what people tell you.
 Type `/setup`. Claude asks for one message, which you can dictate: your name and role, the city you work from, your
 projects in a line each (a name, who owns it, the next step) and a line on your company's rules for AI tools. It then
 writes your project cards and shows your start page, `Home.md`, and a project map as a PDF. From then on GitHub opens
-your vault at a short page that points to Home, and the fictional example is gone from your copy.
+your vault at a short page that points to Home, and the example is gone from your copy.
 
 Claude then offers a second round: the people who matter, the decisions, risks and dates you know of. Or drop a
 strategy, an organisation chart or a recent board pack into `Inbox/`, and Claude starts the registers from it.
@@ -184,7 +184,7 @@ script), `.github/workflows/`, `requirements.txt`, `SETUP.md`, `AGENTS.md`, `CHA
 in each folder, and `CLAUDE.md` but for its "About me" part.
 
 **What stays yours:** your notes, registers, cards and outputs, `Home.md` (its generated part is refreshed),
-`settings.json`, the vault's own `README.md`, and "About me".
+`settings.json`, the vault's own `README.md`, and "About me", with the corrections Claude keeps there.
 
 **How to bring it in,** in a session that can reach GitHub, or on a computer:
 
