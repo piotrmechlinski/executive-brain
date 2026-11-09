@@ -434,6 +434,52 @@ class ExampleVault(unittest.TestCase):
             vault.cmd_review(vault.Vault(self.root))
         return out.getvalue()
 
+    def status(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            vault.cmd_status(vault.Vault(self.root))
+        return out.getvalue()
+
+    def test_the_session_start_names_what_is_due_and_the_decisions_that_wait(self):
+        out = self.status()
+        self.assertIn("- Due within 14 days: 1\n    M4 First-contact resolution baseline, on one definition · P2 · "
+                      "due 2026-10-30 · Maria Lopez\n", out)
+        self.assertIn("with no date, unchanged for 14 days or more: 0\n", out)
+        os.environ["VAULT_TODAY"] = "2026-10-26"  # D4 has no due date and last changed on 2026-10-12; restored in setUp
+        self.assertIn("with no date, unchanged for 14 days or more: 1\n    D4 One cost model for both projects, and who "
+                      "builds it · P1, P2 · Tom Becker · unchanged since 2026-10-12\n", self.status())
+        self.edit("Knowledge/Decisions.md", "| Tom Becker | | open | | 2026-10-12 |",
+                  "| Tom Becker | 2026-12-15 | open | | 2026-10-12 |")
+        self.assertIn("with no date, unchanged for 14 days or more: 0\n", self.status())
+
+    def test_the_session_start_names_five_and_counts_the_rest(self):
+        for n in range(3, 10):
+            self.add_row("Knowledge/Actions.md", "| T%d | Call supplier %d | P1 | Priya Shah | 2026-10-%d | open | 2026-10-21 "
+                                                 "| %s |" % (n, n, 20 + n, CFO_LINK))
+        out = self.status().split("- Due within 14 days: 8\n")[1].split("\n- ")[0]
+        self.assertEqual(out.count("\n    T") + out.startswith("    T"), 5)
+        self.assertIn("T3 Call supplier 3", out)
+        self.assertNotIn("M4", out)  # the nearest five come first
+        self.assertTrue(out.endswith("    and 3 more (/review)"), out)
+
+    def test_corrections_are_kept_in_about_me_and_counted(self):
+        rules = (TOOLS.parent / "CLAUDE.md").read_text(encoding="utf-8")
+        about = rules.split("## About me")[1].split("\n## ")[0]
+        self.assertIn("- **Corrections:** none yet.", about)
+        self.assertIn("\n## Corrections\n", rules)
+        self.assertEqual(vault.corrections(rules), [])
+        lines = "".join("  - Rule %d (2026-11-%02d).\n" % (n, n) for n in range(1, 22))
+        kept = rules.replace("- **Corrections:** none yet.", "- **Corrections:**\n" + lines.rstrip("\n"), 1)
+        self.assertEqual(vault.corrections(kept)[:2], ["Rule 1 (2026-11-01).", "Rule 2 (2026-11-02)."])
+        self.assertEqual(len(vault.corrections(kept)), 21)
+        (self.root / "CLAUDE.md").write_text(kept, encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            errors, warnings = vault.check(vault.Vault(self.root))
+        self.assertEqual(errors, [])
+        self.assertTrue(any("21 corrections under \"About me\"" in w for w in warnings), warnings)
+        updating = (TOOLS.parent / "SETUP.md").read_text(encoding="utf-8").split("**What stays yours:**")[1]
+        self.assertIn("\"About me\", with the corrections", updating.split("**How")[0])
+
     def test_an_action_without_a_date_is_listed_by_its_owner(self):
         self.assertIn("## Open actions, by owner (1)\n- Maria Lopez: T2 Plan the two weeks with both ticket systems",
                       self.review())
@@ -487,7 +533,7 @@ class ExampleVault(unittest.TestCase):
         for asked in ("the city they work from, for the time zone", "company's rules", "`timezone`",
                       "git rm -r -q examples", "`README.md` replaced", "Project map.pdf", "offer round two"):
             self.assertIn(asked, setup)
-        self.assertIn("`examples/`, until `/setup` removes it, holds a fictional vault",
+        self.assertIn("`examples/`, until `/setup` removes it, holds the vault of an\nexample company",
                       (root / "CLAUDE.md").read_text(encoding="utf-8"))
         updating = (root / "SETUP.md").read_text(encoding="utf-8").split("## Updating")[1]
         stays = updating.split("**What stays yours:**")[1].split("**How")[0]

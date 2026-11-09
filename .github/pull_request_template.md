@@ -12,4 +12,4 @@ Closes #
 - [ ] `python3 tools/vault.py check --vault examples/Brightwater` passes
 - [ ] `python3 -m unittest discover -s tools/tests` passes
 - [ ] A line in CHANGELOG.md, under the coming version, if users notice the change
-- [ ] Nothing from a real vault, a real company or a real person; examples are fictional
+- [ ] Nothing from a real vault, a real company or a real person; examples use the example company

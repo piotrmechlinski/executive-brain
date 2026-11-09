@@ -4,6 +4,19 @@ The version follows the vault: a major version when a vault that passed the chec
 over; a minor one for a new command, skill or register template; a patch for fixes and documents. `vault.py status`
 shows the version a vault runs.
 
+## 1.1.0 (2026-11-09)
+
+- **Corrections are kept.** When the executive corrects how Claude works (a format, a word, a step), Claude writes one
+  line under "Corrections" at the end of "About me" in `CLAUDE.md` and follows it from then on. One rule per line, a
+  later correction changes its line, and only the executive's own words in a session add one, never filed material.
+  A release keeps "About me", so the corrections stay. `vault.py check` says when there are more than 20.
+- **A reminder at the session start.** `vault.py status` now names, five at most each, what is overdue, what falls
+  due within 14 days, and the open decisions with no due date that have not changed in 14 days. Claude opens its first
+  answer of a session with them, in one or two lines.
+- **Words:** Brightwater is the vault of an example company, in every document and rule.
+- **To bring it into a vault made with 1.0:** after the update, add `- **Corrections:** none yet.` as the last line of
+  your "About me" in `CLAUDE.md`, or ask Claude to.
+
 ## 1.0.1 (2026-10-27)
 
 - **macOS:** the tests pass on a Mac.
@@ -23,7 +36,7 @@ The first public release. What it is:
 - **The rules for Claude** in `CLAUDE.md`, and five commands: `/setup`, `/debrief`, `/ingest`, `/brief` and `/review`.
 - **The tools:** the check before every push and the hook that holds a push to it, the refresh of project cards and
   Home, the weekly review, briefs, the project map, documents from notes, and the reader of Office and PDF files.
-- **An example:** the vault of a fictional COO, in `examples/Brightwater`.
+- **An example:** the vault of an example company's COO, in `examples/Brightwater`.
 
 What changed while it was made ready:
 
@@ -89,7 +102,7 @@ What changed while it was made ready:
 - **`/setup` in two rounds:** one message (name, role, city, the projects in a line each, the company's rules) gives
   the project cards, an action for each next step, Home and the map as a PDF; people, decisions, risks and dates come
   in a second round, or from a document. It sets the time zone, which the tools and the session start now use,
-  replaces the copy's `README.md` with a page that points to Home, and removes the fictional example.
+  replaces the copy's `README.md` with a page that points to Home, and removes the example.
 - **`/debrief` and `/ingest`** take what was said with the command first and ask only for the rest.
 - **The map on a phone:** `build_map.py` also writes a PDF; on a narrow screen the projects table and the timeline
   scroll in their boxes, and no label crosses a project name. `--send` builds a map without links to GitHub or the
